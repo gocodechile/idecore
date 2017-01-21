@@ -98,12 +98,20 @@ public class BuilderController extends Controller {
                 && Float.parseFloat(forceProject.getEndpointApiVersion()) >= FIRST_TOOLING_API_VERSION;
     }
 
-    private static void buildThroughTooling(ComponentList saveComponentList, IProject project, ForceProject forceProject,
-            IProgressMonitor monitor) {
+    private void buildThroughTooling(ComponentList saveComponentList, IProject project, ForceProject forceProject,
+            IProgressMonitor monitor) throws Exception {
         if (saveComponentList.isNotEmpty()) {
-            //TODO: Check for conflicts
-            ContainerDelegate.getInstance().getServiceLocator().getToolingDeployService()
-            .deploy(forceProject, saveComponentList, monitor);
+        	BuilderPayload savePayload = getBuilderPayloadInstance();
+        	savePayload.setProject(project);
+        	savePayload.setCheckForConflicts(true);
+        	try {
+        		savePayload.loadPayload(saveComponentList, monitor);
+        		if (savePayload.isConflictFound())
+        			throw new Exception("Algunos de los archivos tiene conflicto.");
+	            ContainerDelegate.getInstance().getServiceLocator().getToolingDeployService().deploy(forceProject, saveComponentList, monitor);
+        	} catch (Exception e) {
+                handleException(savePayload, "Unable to perform saves", e);
+            }
         }
     }
 
@@ -137,7 +145,7 @@ public class BuilderController extends Controller {
         DeployResultExt deployResultHandler =
             packageDeployService.deploy(loadedProjectPackageList, monitor, deployOptions);
         ContainerDelegate.getInstance().getServiceLocator().getProjectService()
-            .handleDeployResult(loadedProjectPackageList, deployResultHandler, true, monitor);
+				.handleDeployResult(loadedProjectPackageList, deployResultHandler, true, monitor);
     }
 
     protected DeployOptions makeDeployOptions(PackageDeployService packageDeployService) {

@@ -260,21 +260,28 @@ public class BuilderPayload {
         		project,
                 retrieveResultHandler.getZipFile(),
                 retrieveResultHandler.getFileMetadataHandler());
+        
+        logger.warn("Obteniendo el remoteProjectPackageList");
 
         // for each component in each package in build payload, check for conflict
         for (ProjectPackage projectPackage : projectPackageList) {
+        	logger.warn("Iterando el remote pack list.");
             ComponentList componentList = projectPackage.getComponentList();
             if (componentList != null && componentList.isNotEmpty()) {
+            	logger.warn("El componentList no es nulo ni vacio.");
                 ComponentList tmpComponentList = new ComponentList();
                 tmpComponentList.addAll(componentList);
                 for (Iterator<Component> componentIterator = tmpComponentList.iterator(); componentIterator.hasNext();) {
                     Component component = componentIterator.next();
+                    logger.warn("Entrando al checkeo de conflicto.");
                     conflictCheck(
                     		component,
                     		componentList,
                     		remoteProjectPackageList,
                     		new SubProgressMonitor(monitor, IProgressMonitor.UNKNOWN));
                 }
+            }else{
+            	logger.warn("El componentList es nulo o vacio.");
             }
         }
     }
@@ -286,7 +293,8 @@ public class BuilderPayload {
             IProgressMonitor monitor) {
         // skip package.xml
         if (component.isPackageManifest()) {
-            return;
+            logger.warn("Retorna y se sale del chequeo debido a que isPackageManifest es true.");
+        	return;
         }
 
         // find corresponding component in remote project package
@@ -302,12 +310,15 @@ public class BuilderPayload {
         boolean hasConflict = false;
         try {
             hasConflict = component.hasRemoteChanged(remoteComponent, monitor);
+            logger.warn("Segun esto el componente tiene conflicto? : " + hasConflict);
         } catch (InterruptedException e) {
+        	logger.warn("Mierda, tiro un InterruptedException");
             // do nothing - thrown if user cancels
         }
 
         // if conflict found, handle by removing from deploy list and log and add appropriate markers
         if (hasConflict) {
+        	logger.warn("Comenzando a manejar el conflicto.");
             handleConflict(component, componentList);
         }
     }
@@ -320,8 +331,9 @@ public class BuilderPayload {
         boolean remove = false;
         if (componentList.contains(component)) {
             remove = componentList.remove(component);
+            logger.warn("Componente removvido de la lista de componentes.");
         }
-
+        
         // if composite component, remove corresponding composite component from list too
         if (component.isMetadataComposite() && remove) {
             String componentCompositeFilePath = component.getCompositeMetadataFilePath();
@@ -341,6 +353,7 @@ public class BuilderPayload {
         markerUtils.clearAll(file);
         markerUtils.applyDirty(file);
         markerUtils.applySaveErrorMarker(file, 1, 1, 0, strBuff.toString());
+        logger.warn("Aniadiendo markador!");
     }
 
     public IFile[] getFiles() {
